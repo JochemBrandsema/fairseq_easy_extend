@@ -12,11 +12,14 @@ arXiv preprint arXiv:1904.09324 (2019).
 import argparse
 import collections
 from dataclasses import field, dataclass
+import torch
+import torch.nn.functional as F
 
 import omegaconf
 from fairseq.models import register_model
 from fairseq.models.nat import CMLMNATransformerModel
 from fairseq.models.transformer import TransformerConfig
+from fairseq.models.nat.cmlm_transformer import _skeptical_unmasking
 
 from fairseq_easy_extend.dataclass.utils import gen_parser_from_dataclass
 from fairseq_easy_extend.dataclass.utils import convert_omegaconf_to_namesapce
@@ -54,6 +57,58 @@ class CMLMTransformerConfig(TransformerConfig):
 
 @register_model("cmlm_transformer_base", dataclass=CMLMTransformerConfig)
 class BaseCMLMNATransformerModel(CMLMNATransformerModel):
+
+    def forward_decoder(self, decoder_out, encoder_out, decoding_format=None, **kwargs):
+
+        step = decoder_out.step
+        max_step = decoder_out.max_step
+
+        output_tokens = decoder_out.output_tokens
+        output_scores = decoder_out.output_scores
+        history = decoder_out.history
+
+        # execute the decoder
+        output_masks = output_tokens.eq(self.unk)
+        _scores = self.decoder(
+            normalize=False,
+            prev_output_tokens=output_tokens,
+            encoder_out=encoder_out,
+        )
+
+        batch_dim=_scores.size(1)
+        seq_len=_scores.size(2)
+        vocab_len=_scores.size(2)
+
+        _scores = F.softmax(_scores/kwargs["temperature"], dim=-1)
+        _tokens = torch.multinomial(_scores.view(-1, vocab_len), 1)
+        _tokens = _tokens.view(batch_dim,seq_len).unsqueeze(-1)
+        _scores=_scores.gather(-1,_tokens).squeeze(-1)
+        _tokens=_tokens.squeeze(-1)
+
+        output_tokens.masked_scatter_(output_masks, _tokens[output_masks])
+        output_scores.masked_scatter_(output_masks, _scores[output_masks])
+
+        if history is not None:
+            history.append(output_tokens.clone())
+
+        # skeptical decoding (depend on the maximum decoding steps.)
+        if (step + 1) < max_step:
+            skeptical_mask = _skeptical_unmasking(
+                output_scores, output_tokens.ne(self.pad), 1 - (step + 1) / max_step
+            )
+
+            output_tokens.masked_fill_(skeptical_mask, self.unk)
+            output_scores.masked_fill_(skeptical_mask, 0.0)
+
+            if history is not None:
+                history.append(output_tokens.clone())
+
+        return decoder_out._replace(
+            output_tokens=output_tokens,
+            output_scores=output_scores,
+            attn=None,
+            history=history,
+        )
 
     @classmethod
     def add_args(cls, parser):

@@ -30,6 +30,7 @@ class IterativeRefinementGenerator(object):
         adaptive=True,
         retain_history=False,
         reranking=False,
+        temperature=1.0
     ):
         """
         Generates translations based on iterative refinement.
@@ -58,6 +59,7 @@ class IterativeRefinementGenerator(object):
         self.retain_history = retain_history
         self.adaptive = adaptive
         self.models = models
+        self.temperature = temperature
 
     def generate_batched_itr(
         self,
@@ -202,6 +204,7 @@ class IterativeRefinementGenerator(object):
                 "eos_penalty": self.eos_penalty,
                 "max_ratio": self.max_ratio,
                 "decoding_format": self.decoding_format,
+                "temperature": self.temperature,
             }
             prev_decoder_out = prev_decoder_out._replace(
                 step=step,
@@ -294,6 +297,8 @@ class IterativeRefinementGenerator(object):
                     reranker, finalized, [src_tokens, src_lengths], self.beam_size
                 )
 
+            print(finalized)
+            print([model.decoder.dictionary.string()(hyp[0]["tokens"]) for hyp in finalized])
             # aggregate information from length beam
             finalized = [
                 finalized[
