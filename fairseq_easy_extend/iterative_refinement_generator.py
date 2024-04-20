@@ -298,7 +298,7 @@ class IterativeRefinementGenerator(object):
                 )
 
             print(finalized)
-            print([model.decoder.dictionary.string()(hyp[0]["tokens"]) for hyp in finalized])
+            print([model.decoder.dictionary.string(hyp[0]["tokens"]) for hyp in finalized])
             # aggregate information from length beam
             finalized = [
                 finalized[

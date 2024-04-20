@@ -75,8 +75,8 @@ class BaseCMLMNATransformerModel(CMLMNATransformerModel):
             encoder_out=encoder_out,
         )
 
-        batch_dim=_scores.size(1)
-        seq_len=_scores.size(2)
+        batch_dim=_scores.size(0)
+        seq_len=_scores.size(1)
         vocab_len=_scores.size(2)
 
         _scores = F.softmax(_scores/kwargs["temperature"], dim=-1)
