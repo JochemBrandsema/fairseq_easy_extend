@@ -297,21 +297,20 @@ class IterativeRefinementGenerator(object):
                     reranker, finalized, [src_tokens, src_lengths], self.beam_size
                 )
 
-            print(finalized)
-            print([model.decoder.dictionary.string(hyp[0]["tokens"]) for hyp in finalized])
             # aggregate information from length beam
-            finalized = [
-                finalized[
-                    np.argmax(
-                        [
-                            finalized[self.beam_size * i + j][0]["score"]
-                            for j in range(self.beam_size)
-                        ]
-                    )
-                    + self.beam_size * i
-                ]
-                for i in range(len(finalized) // self.beam_size)
-            ]
+            #finalized = [
+            #    finalized[
+            #        np.argmax(
+            #            [
+            #                finalized[self.beam_size * i + j][0]["score"]
+            #                for j in range(self.beam_size)
+            #            ]
+            #        )
+            #        + self.beam_size * i
+            #    ]
+            #    for i in range(len(finalized) // self.beam_size)
+            #]
+            finalized = [[hyp[0] for hyp in finalized]]
 
         return finalized
 
