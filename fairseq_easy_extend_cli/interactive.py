@@ -15,6 +15,7 @@ import sys
 import time
 from argparse import Namespace
 from collections import namedtuple
+from tqdm import tqdm
 
 
 import numpy as np
@@ -210,7 +211,7 @@ def main(cfg: FairseqConfig):
     logger.info("NOTE: hypothesis and token scores are output in base 2")
     logger.info("Type the input sentence and press return:")
     start_id = 0
-    for inputs in buffered_read(cfg.interactive.input, cfg.interactive.buffer_size):
+    for inputs in tqdm(buffered_read(cfg.interactive.input, cfg.interactive.buffer_size)):
         results = []
         for batch in make_batches(inputs, cfg, task, max_positions, encode_fn):
             bsz = batch.src_tokens.size(0)

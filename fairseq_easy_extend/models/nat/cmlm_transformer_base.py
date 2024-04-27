@@ -82,8 +82,8 @@ class BaseCMLMNATransformerModel(CMLMNATransformerModel):
         _scores = F.softmax(_scores/kwargs["temperature"], dim=-1)
         _tokens = torch.multinomial(_scores.view(-1, vocab_len), 1)
         _tokens = _tokens.view(batch_dim,seq_len).unsqueeze(-1)
-        _scores=_scores.gather(-1,_tokens).squeeze(-1)
-        _tokens=_tokens.squeeze(-1)
+        _scores = _scores.gather(-1,_tokens).squeeze(-1)
+        _tokens = _tokens.squeeze(-1)
 
         output_tokens.masked_scatter_(output_masks, _tokens[output_masks])
         output_scores.masked_scatter_(output_masks, _scores[output_masks])
