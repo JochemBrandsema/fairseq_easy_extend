@@ -69,21 +69,34 @@ class BaseCMLMNATransformerModel(CMLMNATransformerModel):
 
         # execute the decoder
         output_masks = output_tokens.eq(self.unk)
-        _scores = self.decoder(
-            normalize=False,
-            prev_output_tokens=output_tokens,
-            encoder_out=encoder_out,
-        )
 
-        batch_dim=_scores.size(0)
-        seq_len=_scores.size(1)
-        vocab_len=_scores.size(2)
+        if kwargs["sampling"]:
+            _scores = self.decoder(
+                normalize=False,
+                prev_output_tokens=output_tokens,
+                encoder_out=encoder_out,
+            )
 
-        _scores = F.softmax(_scores/kwargs["temperature"], dim=-1)
-        _tokens = torch.multinomial(_scores.view(-1, vocab_len), 1)
-        _tokens = _tokens.view(batch_dim,seq_len).unsqueeze(-1)
-        _scores = _scores.gather(-1,_tokens).squeeze(-1)
-        _tokens = _tokens.squeeze(-1)
+            batch_dim=_scores.size(0)
+            seq_len=_scores.size(1)
+            vocab_len=_scores.size(2)
+
+            _scores = F.softmax(_scores/kwargs["temperature"], dim=-1)
+            if kwargs["k"] > 0: # set scores outside top k to 0
+                topk_values = _scores.topk(kwargs["k"], dim=-1)
+                mask = _scores < topk_values[:, -1].unsqueeze(-1)
+                _scores[mask] = 0.
+            _tokens = torch.multinomial(_scores.view(-1, vocab_len), 1)
+            _tokens = _tokens.view(batch_dim,seq_len).unsqueeze(-1)
+            _scores = _scores.gather(-1,_tokens).squeeze(-1)
+            _tokens = _tokens.squeeze(-1)
+        
+        else:
+            _scores, _tokens = self.decoder(
+                normalize=True,
+                prev_output_tokens=output_tokens,
+                encoder_out=encoder_out,
+            ).max(-1)
 
         output_tokens.masked_scatter_(output_masks, _tokens[output_masks])
         output_scores.masked_scatter_(output_masks, _scores[output_masks])

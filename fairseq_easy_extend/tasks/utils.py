@@ -180,6 +180,8 @@ def build_iterative_generator(self, models, args, **unused):
         eos_penalty=getattr(args, "iter_decode_eos_penalty", 0.0),
         max_iter=getattr(args, "iter_decode_max_iter", 10),
         beam_size=getattr(args, "iter_decode_with_beam", 1),
+        sampling=getattr(args, "sampling", False),
+        sampling_topk=getattr(args, "sampling_topk", -1),
         reranking=getattr(args, "iter_decode_with_external_reranker", False),
         decoding_format=getattr(args, "decoding_format", None),
         adaptive=not getattr(args, "iter_decode_force_max_iter", False),

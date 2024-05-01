@@ -579,15 +579,15 @@ class SequenceGenerator(nn.Module):
             reorder_state = active_bbsz_idx
 
         # sort by score descending
-        for sent in range(len(finalized)):
-            scores = torch.tensor(
-                [float(elem["score"].item()) for elem in finalized[sent]]
-            )
-            _, sorted_scores_indices = torch.sort(scores, descending=True)
-            finalized[sent] = [finalized[sent][ssi] for ssi in sorted_scores_indices]
-            finalized[sent] = torch.jit.annotate(
-                List[Dict[str, Tensor]], finalized[sent]
-            )
+        #for sent in range(len(finalized)):
+        #    scores = torch.tensor(
+        #        [float(elem["score"].item()) for elem in finalized[sent]]
+        #    )
+        #    _, sorted_scores_indices = torch.sort(scores, descending=True)
+        #    finalized[sent] = [finalized[sent][ssi] for ssi in sorted_scores_indices]
+        #    finalized[sent] = torch.jit.annotate(
+        #        List[Dict[str, Tensor]], finalized[sent]
+        #    )
         return finalized
 
     def _prefix_tokens(

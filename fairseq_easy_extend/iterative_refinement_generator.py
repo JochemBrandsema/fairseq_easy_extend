@@ -25,6 +25,8 @@ class IterativeRefinementGenerator(object):
         max_iter=10,
         max_ratio=2,
         beam_size=1,
+        sampling=False,
+        sampling_topk=-1,
         decoding_format=None,
         retain_dropout=False,
         adaptive=True,
@@ -53,6 +55,8 @@ class IterativeRefinementGenerator(object):
         self.max_iter = max_iter
         self.max_ratio = max_ratio
         self.beam_size = beam_size
+        self.sampling = sampling
+        self.sampling_topk = sampling_topk
         self.reranking = reranking
         self.decoding_format = decoding_format
         self.retain_dropout = retain_dropout
@@ -205,6 +209,8 @@ class IterativeRefinementGenerator(object):
                 "max_ratio": self.max_ratio,
                 "decoding_format": self.decoding_format,
                 "temperature": self.temperature,
+                "sampling": self.sampling,
+                "k": self.sampling_topk,
             }
             prev_decoder_out = prev_decoder_out._replace(
                 step=step,
