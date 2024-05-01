@@ -127,7 +127,7 @@ def main(cfg: FairseqConfig):
         cfg.dataset.batch_size = 1
 
     assert (
-            not cfg.generation.sampling or cfg.generation.nbest == cfg.generation.beam
+            not cfg.generation.sampling or not cfg.task._name == "translation" or cfg.generation.nbest == cfg.generation.beam
     ), "--sampling requires --nbest to be equal to --beam"
     assert (
             not cfg.dataset.batch_size

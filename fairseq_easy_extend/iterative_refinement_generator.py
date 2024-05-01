@@ -4,9 +4,11 @@
 # LICENSE file in the root directory of this source tree.
 
 from collections import namedtuple
+from typing import Dict, List
 
 import numpy as np
 import torch
+from torch import Tensor
 from fairseq import utils
 
 
@@ -317,6 +319,15 @@ class IterativeRefinementGenerator(object):
             #    for i in range(len(finalized) // self.beam_size)
             #]
             finalized = [[hyp[0] for hyp in finalized]]
+            for sent in range(len(finalized)):
+                scores = torch.tensor(
+                    [float(elem["score"].item()) for elem in finalized[sent]]
+                )
+                _, sorted_scores_indices = torch.sort(scores, descending=True)
+                finalized[sent] = [finalized[sent][ssi] for ssi in sorted_scores_indices]
+                finalized[sent] = torch.jit.annotate(
+                    List[Dict[str, Tensor]], finalized[sent]
+                )
 
         return finalized
 
