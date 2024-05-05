@@ -141,7 +141,11 @@ class IterativeRefinementGenerator(object):
 
         # initialize
         encoder_out = model.forward_encoder([src_tokens, src_lengths])
-        prev_decoder_out = model.initialize_output_tokens(encoder_out, src_tokens)
+        if self.sampling:
+            prev_decoder_out = model.initialize_output_tokens_sampling(
+                encoder_out, self.beam_size, self.temperature, self.sampling_topk)
+        else:
+            prev_decoder_out = model.initialize_output_tokens(encoder_out, src_tokens)
 
         if self.beam_size > 1:
             assert (
@@ -157,9 +161,10 @@ class IterativeRefinementGenerator(object):
             encoder_out = model.encoder.reorder_encoder_out(
                 encoder_out, length_beam_order
             )
-            prev_decoder_out = model.regenerate_length_beam(
-                prev_decoder_out, self.beam_size
-            )
+            if not self.sampling:
+                prev_decoder_out = model.regenerate_length_beam(
+                    prev_decoder_out, self.beam_size
+                )
             bsz = bsz * self.beam_size
 
         sent_idxs = torch.arange(bsz)

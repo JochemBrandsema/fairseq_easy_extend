@@ -16,11 +16,13 @@ import torch
 import torch.nn.functional as F
 
 import omegaconf
+from fairseq import utils
 from fairseq.models import register_model
 from fairseq.models.nat import CMLMNATransformerModel
 from fairseq.models.transformer import TransformerConfig
 from fairseq.models.nat.cmlm_transformer import _skeptical_unmasking
 
+from fairseq_easy_extend.iterative_refinement_generator import DecoderOut
 from fairseq_easy_extend.dataclass.utils import gen_parser_from_dataclass
 from fairseq_easy_extend.dataclass.utils import convert_omegaconf_to_namesapce
 
@@ -81,10 +83,10 @@ class BaseCMLMNATransformerModel(CMLMNATransformerModel):
             seq_len=_scores.size(1)
             vocab_len=_scores.size(2)
 
-            _scores = F.softmax(_scores/kwargs["temperature"], dim=-1)
+            _scores = F.softmax(_scores / kwargs["temperature"], dim=-1)
             if kwargs["k"] > 0: # set scores outside top k to 0
-                topk_values = _scores.topk(kwargs["k"], dim=-1)
-                mask = _scores < topk_values[:, -1].unsqueeze(-1)
+                topk_values, _ = _scores.topk(kwargs["k"], dim=-1)
+                mask = _scores < topk_values[:, :, -1].unsqueeze(-1)
                 _scores[mask] = 0.
             _tokens = torch.multinomial(_scores.view(-1, vocab_len), 1)
             _tokens = _tokens.view(batch_dim,seq_len).unsqueeze(-1)
@@ -122,7 +124,41 @@ class BaseCMLMNATransformerModel(CMLMNATransformerModel):
             attn=None,
             history=history,
         )
+    
+    def initialize_output_tokens_sampling(self, encoder_out, beam_size, temperature, k):
+        length_out = self.decoder.forward_length(normalize=False, encoder_out=encoder_out)
+        length_out = F.softmax(length_out / temperature, dim=-1)
+        if k > 0: # set scores outside top k to 0
+            topk_values, _ = length_out.topk(k, dim=-1)
+            mask = length_out < topk_values[:, -1]
+            length_out[mask] = 0.
+        length_tgt = torch.multinomial(length_out, beam_size, True)
+        length_tgt = length_tgt.view(-1).clamp_(min=2)
+        max_length = length_tgt.max()
+        idx_length = utils.new_arange(encoder_out["encoder_out"][0], max_length)
+        
+        initial_output_tokens = idx_length.new_zeros(
+            beam_size, max_length
+        ).fill_(self.pad)
+        initial_output_tokens.masked_fill_(
+            idx_length[None, :] < length_tgt[:, None], self.unk
+        )
+        initial_output_tokens[:, 0] = self.bos
+        initial_output_tokens.scatter_(1, length_tgt[:, None] - 1, self.eos)
 
+        initial_output_scores = initial_output_tokens.new_zeros(
+            *initial_output_tokens.size()
+        ).type_as(encoder_out["encoder_out"][0])
+
+        return DecoderOut(
+            output_tokens=initial_output_tokens,
+            output_scores=initial_output_scores,
+            attn=None,
+            step=0,
+            max_step=0,
+            history=None,
+        )
+        
     @classmethod
     def add_args(cls, parser):
         """Add model-specific arguments to the parser."""
