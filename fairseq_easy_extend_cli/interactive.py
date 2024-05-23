@@ -259,8 +259,8 @@ def main(cfg: FairseqConfig):
             src_str = ""
             if src_dict is not None:
                 src_str = src_dict.string(src_tokens, cfg.common_eval.post_process)
-                print("S-{}\t{}".format(id_, src_str))
-                print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
+                #print("S-{}\t{}".format(id_, src_str))
+                #print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
                 for constraint in info["constraints"]:
                     print(
                         "C-{}\t{}".format(
@@ -283,21 +283,22 @@ def main(cfg: FairseqConfig):
                 detok_hypo_str = decode_fn(hypo_str)
                 score = hypo["score"]  # convert to base 2
                 # original hypothesis (after tokenization and BPE)
-                print("H-{}\t{}\t{}".format(id_, score, hypo_str))
+                print(hypo_str)
+                #print("H-{}\t{}\t{}".format(id_, score, hypo_str))
                 # detokenized hypothesis
-                print("D-{}\t{}\t{}".format(id_, score, detok_hypo_str))
-                print(
-                    "P-{}\t{}".format(
-                        id_,
-                        " ".join(
-                            map(
-                                lambda x: "{:.4f}".format(x),
-                                # convert from base e to base 2
-                                hypo["positional_scores"].tolist(),
-                            )
-                        ),
-                    )
-                )
+                #print("D-{}\t{}\t{}".format(id_, score, detok_hypo_str))
+                #print(
+                #    "P-{}\t{}".format(
+                #        id_,
+                #        " ".join(
+                #            map(
+                #                lambda x: "{:.4f}".format(x),
+                #                # convert from base e to base 2
+                #                hypo["positional_scores"].tolist(),
+                #            )
+                #        ),
+                #    )
+                #)
                 if cfg.generation.print_alignment:
                     alignment_str = " ".join(
                         ["{}-{}".format(src, tgt) for src, tgt in alignment]
