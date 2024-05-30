@@ -90,7 +90,7 @@ class BaseCMLMNATransformerModel(CMLMNATransformerModel):
                 _scores[mask] = 0.
             _tokens = torch.multinomial(_scores.view(-1, vocab_len), 1)
             _tokens = _tokens.view(batch_dim,seq_len).unsqueeze(-1)
-            _scores = _scores.gather(-1,_tokens).squeeze(-1)
+            _scores = _scores.gather(-1,_tokens).squeeze(-1).log()
             _tokens = _tokens.squeeze(-1)
         
         else:
